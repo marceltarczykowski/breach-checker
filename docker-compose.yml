@@ -9,6 +9,11 @@ services:
 
   backend:
     build: ./backend
+    read_only: true               # system plików kontenera tylko do odczytu
+    cap_drop:
+      - ALL                       # odebranie wszystkich uprawnień jądra (capabilities)
+    security_opt:
+      - no-new-privileges:true    # proces nie może zyskać uprawnień (np. przez setuid)
     environment:
       DB_HOST: db
       DB_NAME: ${POSTGRES_DB}
@@ -22,7 +27,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
+    tmpfs:
+      - /tmp
   db:
     image: postgres:16-alpine
     environment:
