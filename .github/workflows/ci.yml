@@ -40,7 +40,7 @@ jobs:
       - name: Logowanie do GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
       - name: Budowanie obrazu produkcyjnego
-        run: docker build -t "$IMAGE:$GITHUB_SHA" -t "$IMAGE:latest" backend
+        run: docker build -t "$IMAGE:$GITHUB_SHA" backend
       - name: Publikacja
         run: docker push --all-tags "$IMAGE"
 
@@ -56,7 +56,7 @@ jobs:
       - name: Logowanie do GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
       - name: Budowanie obrazu produkcyjnego
-        run: docker build -t "$IMAGE:${GITHUB_SHA::7}" -t "$IMAGE:latest" frontend
+        run: docker build -t "$IMAGE:${GITHUB_SHA::7}" frontend
       - name: Publikacja
         run: docker push --all-tags "$IMAGE"
 
@@ -73,7 +73,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - name: Nazwy obrazów z tego commita
         run: |
-          echo "BACKEND_IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/breach-checker-backend:$GITHUB_SHA" >> "$GITHUB_ENV"
+          echo "BACKEND_IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/breach-checker-backend:$GITHUB_SHA::7" >> "$GITHUB_ENV"
           echo "FRONTEND_IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/breach-checker-frontend:${GITHUB_SHA::7}" >> "$GITHUB_ENV"
       - name: Logowanie do GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
@@ -91,3 +91,19 @@ jobs:
       - name: Logi przy błędzie
         if: failure()
         run: docker compose logs
+
+promote:
+    needs: verify
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Logowanie do GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: Nadanie tagu latest obu obrazom (bez pobierania warstw)
+        run: |
+          BACKEND="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/breach-checker-backend"
+          FRONTEND="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/breach-checker-frontend"
+          docker buildx imagetools create -t "$BACKEND:latest" "$BACKEND:${GITHUB_SHA::7}"
+          docker buildx imagetools create -t "$FRONTEND:latest" "$FRONTEND:${GITHUB_SHA::7}"
