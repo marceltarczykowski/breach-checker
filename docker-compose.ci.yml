@@ -4,3 +4,5 @@ services:
     image: ${BACKEND_IMAGE}
   frontend:
     image: ${FRONTEND_IMAGE}
+  log:
+    image: ${LOG_IMAGE}
